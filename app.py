@@ -56,18 +56,15 @@ if access_key:
             st.success(f"✅ 인증 성공! 잔여 횟수: {remaining}회")
             
             mode = st.selectbox("어떤 스타일을 시뮬레이션할까요?", ["헤어", "아우터", "이너"])
-            
-            col1, col2 = st.columns(2)
-            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)
-            with col1:
-                base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
+            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)            
             st.markdown("---")
             st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>참고할 헤어 사진 (Style)</span>", unsafe_allow_html=True)
-
-            # 3. 예시 이미지 및 문구 추가
             st.info("💡 아래와 같은 '정면'을 준비해주세요. (측면 사진은 불가해요)")
             # 예시 이미지가 폴더에 있다면 경로 입력, 없다면 주석 처리하세요.
             st.image("example_front.jpg", width=200)
+            col1, col2 = st.columns(2)
+            with col1:
+                base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
             with col2:
                 style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'])
 
@@ -127,4 +124,4 @@ if access_key:
     else:
         st.error("잘못된 키입니다.")
 else:
-    st.info("좌측 상단의 '>>'를 눌러서 키를 입력해주세요.")
+    st.info("좌측 상단의 " >> "를 눌러서 키를 입력해주세요.")
