@@ -99,11 +99,7 @@ if access_key:
                         # 이미지 처리 및 합성 로직 시작
                         img_a = Image.open(base_img)
                         img_b = Image.open(style_img)
-                        
-                        # [속도 개선 팁] 너무 큰 이미지는 속도를 늦추므로 리사이징
-                        img_a.thumbnail((1024, 1024))
-                        img_b.thumbnail((1024, 1024))
-                        
+                                                
                         # 헤나세르님이 제안하신 프롬프트를 시스템 명령어로 구성
                         # 첫 번째 인자가 Image A, 두 번째 인자가 Image B임을 명시합니다.
                         prompt = f"""
