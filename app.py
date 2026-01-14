@@ -130,68 +130,97 @@ if access_key:
                         """
                         
                         try:
-                            # 순서가 매우 중요합니다: [프롬프트, 베이스이미지(A), 스타일이미지(B)]
+                            # 1. AI에게 이미지 생성 요청
                             response = model.generate_content([prompt, img_a, img_b])
                             
                             found_image = False
+                            image_data = None # 이미지 데이터를 저장할 변수
+
                             if response.candidates:
                                 for part in response.candidates[0].content.parts:
                                     if part.inline_data:
-                                        st.image(part.inline_data.data, caption="✨ 헤나세르 AI 시뮬레이션 완료")
+                                        # [수정] 바로 화면에 띄우지 않고, 데이터만 변수에 저장합니다.
+                                        image_data = part.inline_data.data
                                         found_image = True
+                                        break # 이미지를 찾았으면 루프 종료
                             
-                            if found_image:
+                            if found_image and image_data:
                                 # --- [1. 워터마크 합성 로직 시작] ---
                                 try:
-                                    # AI가 만든 원본 이미지 로드 (RGBA 모드로 변환)
-                                    image_bytes = part.inline_data.data
-                                    base_image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+                                    # AI가 만든 원본 이미지 로드
+                                    base_image = Image.open(io.BytesIO(image_data)).convert("RGBA")
                                     
                                     # 로고 이미지 로드
                                     logo = Image.open("logo.png").convert("RGBA")
 
-                                    # 1-1. 로고 크기 조절 (원본 이미지 너비의 20% 크기로 설정)
+                                    # 로고 크기 조절
                                     target_width = int(base_image.width * 0.2)
                                     aspect_ratio = logo.height / logo.width
                                     target_height = int(target_width * aspect_ratio)
                                     logo_resized = logo.resize((target_width, target_height), Image.LANCZOS)
 
-                                    # 1-2. 로고 위치 계산 (우측 하단, 여백 20px)
+                                    # 로고 위치 계산
                                     padding = 20
                                     position = (base_image.width - logo_resized.width - padding, base_image.height - logo_resized.height - padding)
 
-                                    # 1-3. 합성 (투명 배경 레이어 활용)
-                                    # 투명한 새 도화지를 만들고 그 위에 로고를 붙인 뒤, 원본과 합칩니다.
+                                    # 합성
                                     watermark_layer = Image.new('RGBA', base_image.size, (0,0,0,0))
                                     watermark_layer.paste(logo_resized, position, mask=logo_resized)
-                                    final_result = Image.alpha_composite(base_image, watermark_layer)
-                                    
-                                    # 출력용 최종 이미지 설정
-                                    display_image = final_result
+                                    display_image = Image.alpha_composite(base_image, watermark_layer)
 
                                 except FileNotFoundError:
-                                    # 만약 logo.png 파일이 없으면 그냥 원본 이미지를 출력 (에러 방지)
+                                    # 로고 파일이 없으면 원본을 그대로 보여줌
                                     st.warning("⚠️ 로고 파일(logo.png)을 찾을 수 없어 워터마크 없이 출력합니다.")
-                                    display_image = base_image
+                                    display_image = Image.open(io.BytesIO(image_data))
                                 
-                                # --- [2. 최종 결과 화면 출력] ---
-                                st.image(display_image, caption="✨헤나세르 AI 스타일링 결과", use_column_width=True)
+                                # --- [2. 최종 결과물 딱 한 번만 출력] ---
+                                st.image(display_image, caption="✨ 헤나세르 AI 스타일링 결과", use_column_width=True)
 
-                                st.success("✅ 합성이 완료되었습니다!")
-                                
-                                # 강조된 캡처 안내 문구 (크고 잘 보이게)
+                                # 2-1. [신규] 하단 고정 주의 문구 (회색의 작은 글씨로 깔끔하게 배치)
                                 st.markdown("""
-                                    ### 📸 **지금 화면을 캡처해서 저장하세요!**
+                                    <div style='text-align: center; color: #808080; font-size: 13px; line-height: 1.6; margin-top: 10px;'>
+                                        이 결과는 스타일 방향성을 보기 위한<br>
+                                        AI 시뮬레이션입니다.<br>
+                                        실제와 100% 일치하지 않을 수 있습니다.
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                                # 2-2. [신규] 좋아요 피드백 섹션
+                                st.write("")
+                                col_like, col_empty = st.columns([1, 1])
+                                with col_like:
+                                    if st.button("👍 이 결과가 마음에 드시나요? (Like)"):
+                                        try:
+                                            # 1. 현재 '좋아요' 값 가져오기 (D열은 4번째 열)
+                                            # 만약 셀이 비어있으면 0으로 취급합니다.
+                                            current_likes_val = worksheet.cell(idx + 2, 4).value
+                                            current_likes = int(current_likes_val) if current_likes_val and str(current_likes_val).isdigit() else 0
+                                            
+                                            # 2. 값 1 증가시켜 업데이트
+                                            worksheet.update_cell(idx + 2, 4, current_likes + 1)
+                                            
+                                            st.toast("피드백 감사합니다! 데이터가 안전하게 기록되었습니다. 😊")
+                                        except Exception as e:
+                                            st.error(f"피드백 기록 중 오류가 발생했습니다: {e}")
+
+                                st.markdown("---")
+
+                                # 3. 캡처 안내 문구
+                                st.success("✅ 합성이 완료되었습니다!")
+                                st.markdown("""
+                                    ### 📸 **지금 화면을 캡쳐하세요!**
                                     <div style='background-color:#f0f2f6; padding:15px; border-radius:10px;'>
                                     미용실 방문 시 디자이너에게 이 사진을 보여주시면 상담이 훨씬 수월해집니다.😉
                                     </div>
                                     <br>
                                     """, unsafe_allow_html=True)
 
-                                # 횟수 차감 및 축하 풍선
+                                # 횟수 차감 및 효과
                                 worksheet.update_cell(idx + 2, 3, remaining - 1)
+                                st.balloons()
+                                
                             else:
-                                st.error("AI가 이미지를 생성하지 못했습니다. 프롬프트나 이미지 정책을 확인해주세요.")
+                                st.error("AI가 이미지를 생성하지 못했습니다. 다시 시도해 주세요.")
                                 if hasattr(response, 'text'): st.write(response.text)
 
                         except Exception as e:
