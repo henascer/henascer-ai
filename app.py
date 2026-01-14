@@ -5,6 +5,7 @@ import google.generativeai as genai
 from PIL import Image
 import pandas as pd
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import io
 
 # 모델 선언 부분
 model = genai.GenerativeModel(
@@ -103,6 +104,8 @@ if access_key:
                         # 헤나세르님이 제안하신 프롬프트를 시스템 명령어로 구성
                         # 첫 번째 인자가 Image A, 두 번째 인자가 Image B임을 명시합니다.
                         prompt = f"""
+                        URGENT: Strict head pose alignment. The nose and eyes in the output MUST be in the exact same pixel coordinates as Image A.
+                        
                         [Role]: You are a Master AI Stylist specializing in photo-realistic Virtual Try-on.
 
                         [Input]:
@@ -141,6 +144,15 @@ if access_key:
                                 # 합성이 성공했을 때만 횟수 차감 및 축하 효과
                                 worksheet.update_cell(idx + 2, 3, remaining - 1)
                                 st.success(f"스타일링 완료! 잔여 횟수: {remaining - 1}회")
+                                # 이미지 데이터를 바이너리로 변환하여 다운로드 버튼 생성
+                                buf = io.BytesIO()
+                                # part.inline_data.data는 바이너리 데이터이므로 그대로 활용 가능합니다.
+                                st.download_button(
+                                    label="💾 결과 이미지 저장하기",
+                                    data=part.inline_data.data,
+                                    file_name="henascer_style_result.png",
+                                    mime="image/png"
+                                )
                             else:
                                 st.error("AI가 이미지를 생성하지 못했습니다. 프롬프트나 이미지 정책을 확인해주세요.")
                                 if hasattr(response, 'text'): st.write(response.text)
