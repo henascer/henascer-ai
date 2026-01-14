@@ -37,7 +37,7 @@ except Exception as e:
 
 # 제미나이 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-3-pro-image-preview')
+model = genai.GenerativeModel('gemini-2.5-flash-image')
 
 # 3. 메인 로직
 with st.sidebar:
