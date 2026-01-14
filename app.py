@@ -5,18 +5,20 @@ import google.generativeai as genai
 from PIL import Image
 import pandas as pd
 
-# [추가] 하단 'Created by'와 메뉴 숨기기 (모바일 깔끔하게)
-hide_st_style = """
+
+
+# 1. 페이지 설정
+st.set_page_config(page_title="헤나세르 AI 스타일러", layout="centered")
+st.title("✂️ 헤나세르 AI 가상 스타일링 (MVP)")
+
+# 하단 푸터 및 메뉴 숨기기 CSS
+hide_style = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             </style>
             """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# 1. 페이지 설정
-st.set_page_config(page_title="헤나세르 AI 스타일러", layout="centered")
-st.title("✂️ 헤나세르 AI 가상 스타일링 (MVP)")
+st.markdown(hide_style, unsafe_allow_html=True)
 
 # 2. 인증 설정
 try:
@@ -35,12 +37,12 @@ except Exception as e:
 
 # 제미나이 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('nano-banana-pro-preview')
+model = genai.GenerativeModel('gemini-3-pro-image-preview')
 
 # 3. 메인 로직
 with st.sidebar:
     st.header("🔑 멤버십 인증")
-    access_key = st.text_input("액세스 키를 입력하세요", type="password")
+    access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)", type="password")
 
 if access_key:
     # 실시간 시트 데이터 확인
