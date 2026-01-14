@@ -159,6 +159,7 @@ if access_key:
                                 st.session_state.styling_done = True
                                 
                                 # 횟수 차감 (합성 성공 시 딱 한 번)
+                                
                                 worksheet.update_cell(idx + 2, 3, remaining - 1)
                             else:
                                 st.error("AI가 이미지를 생성하지 못했습니다. 다시 시도해 주세요.")
@@ -167,13 +168,13 @@ if access_key:
 
             # --- [5. 결과물 출력 섹션 (버튼 바깥)] ---
             if st.session_state.styling_done and st.session_state.final_image:
-                st.markdown("---")
+                st.success("✅ 합성이 완료되었습니다!")
                 # 로고가 박힌 이미지 출력
-                st.image(st.session_state.final_image, caption="✨ 헤나세르 AI 스타일링 결과", use_column_width=True)
+                st.image(st.session_state.final_image, use_column_width=True)
 
                 # 주의 문구
                 st.markdown("""
-                    <div style='text-align: center; color: #808080; font-size: 13px; line-height: 1.6; margin-top: 10px;'>
+                    <div style='text-align: center; color: #808080; font-size: 16px; line-height: 1.6; margin-top: 10px;'>
                         이 결과는 스타일 방향성을 보기 위한<br>
                         AI 시뮬레이션입니다.<br>
                         실제와 100% 일치하지 않을 수 있습니다.
@@ -195,7 +196,6 @@ if access_key:
                             st.error(f"기록 오류: {e}")
 
                 # 캡처 안내
-                st.success("✅ 합성이 완료되었습니다!")
                 st.markdown("""
                     ### 📸 **지금 화면을 캡쳐하세요!**
                     <div style='background-color:#f0f2f6; padding:15px; border-radius:10px;'>
