@@ -48,7 +48,7 @@ except Exception as e:
 
 # 제미나이 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('nano-banana-pro-preivew')
+model = genai.GenerativeModel('nano-banana-pro-preview')
 
 # 3. 메인 로직
 with st.sidebar:
