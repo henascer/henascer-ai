@@ -8,7 +8,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # 모델 선언 부분
 model = genai.GenerativeModel(
-    'gemini-2.5-flash-image',
+    'gemini-3-pro-image-preview',
     safety_settings={
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -48,7 +48,7 @@ except Exception as e:
 
 # 제미나이 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-2.5-flash-image')
+model = genai.GenerativeModel('gemini-3-pro-image-preview')
 
 # 3. 메인 로직
 with st.sidebar:
