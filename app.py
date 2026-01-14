@@ -5,6 +5,16 @@ import google.generativeai as genai
 from PIL import Image
 import pandas as pd
 
+# [추가] 하단 'Created by'와 메뉴 숨기기 (모바일 깔끔하게)
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 AI 스타일러", layout="centered")
 st.title("✂️ 헤나세르 AI 가상 스타일링 (MVP)")
@@ -49,14 +59,22 @@ if access_key:
             mode = st.selectbox("어떤 스타일을 시뮬레이션할까요?", ["헤어", "아우터", "이너"])
             
             col1, col2 = st.columns(2)
+            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)
             with col1:
-                base_img = st.file_uploader("내 정면 사진 (Base)", type=['jpg', 'png', 'jpeg'])
+                base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
+            st.markdown("---")
+            st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>참고할 헤어 사진 (Style)</span>", unsafe_allow_html=True)
+
+            # 3. 예시 이미지 및 문구 추가
+            st.info("💡 아래와 같은 '정면'을 준비해주세요. (측면 사진은 불가해요)")
+            # 예시 이미지가 폴더에 있다면 경로 입력, 없다면 주석 처리하세요.
+            st.image("example_front.jpg", width=200)
             with col2:
-                style_img = st.file_uploader(f"참고할 {mode} 사진 (Style)", type=['jpg', 'png', 'jpeg'])
+                style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'])
 
             if base_img and style_img:
-                if st.button(f"✨ {mode} 합성 시작하기"):
-                    with st.spinner("AI가 마법을 부리는 중입니다..."):
+                if st.button(f"✨ {mode} 합성 시작하기 (1~2분)"):
+                    with st.spinner("1~2분 정도 소요됩니다. 페이지를 이탈하지 마세요."):
                         img_a = Image.open(base_img)
                         img_b = Image.open(style_img)
                         
@@ -110,4 +128,4 @@ if access_key:
     else:
         st.error("잘못된 키입니다.")
 else:
-    st.info("왼쪽에서 키를 입력해 주세요.")
+    st.info("좌측 상단의 '>>'를 눌러서 키를 입력해주세요.")
