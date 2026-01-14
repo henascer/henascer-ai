@@ -55,23 +55,40 @@ if access_key:
         if remaining > 0:
             st.success(f"✅ 인증 성공! 잔여 횟수: {remaining}회")
             
+            # 1. 스타일 선택
             mode = st.selectbox("어떤 스타일을 시뮬레이션할까요?", ["헤어", "아우터", "이너"])
-            col1, col2 = st.columns(2)
-            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)            
-            with col1:
-                base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
-            st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>합성할 헤어 사진 (Style)</span>", unsafe_allow_html=True)
-            st.info("💡 아래와 같은 '정면'을 준비해주세요. (측면 사진은 불가해요)")
-            # 예시 이미지가 폴더에 있다면 경로 입력, 없다면 주석 처리하세요.
-            st.image("example_front.jpg", width=200)
-            with col2:
-                style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'])
+            
+            st.markdown("---")
 
+            # 2. 내 정면 사진 (Base) 섹션
+            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)
+            base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
+            
+            st.markdown("---")
+
+            # 3. 합성할 헤어 사진 (Style) 섹션
+            st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>합성할 헤어 사진 (Style)</span>", unsafe_allow_html=True)
+            
+            # 안내 문구 및 예시 이미지
+            st.info("💡 아래와 같은 '정면' 예시를 준비해주세요. (측면 사진은 불가해요)")
+            st.image("example_front.jpg", width=250, caption="[합성이 잘 되는 정면 예시]")
+            
+            # 헤어 사진 업로드 창
+            style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'])
+
+            st.markdown("---")
+
+            # 4. 실행 버튼
             if base_img and style_img:
                 if st.button(f"✨ {mode} 합성 시작하기 (1~2분)"):
-                    with st.spinner("1~2분 정도 소요됩니다. 페이지를 이탈하지 마세요."):
+                    with st.spinner("1~2분 정도 소요됩니다. 페이지를 이탈하거나 새로고침 하지 마세요."):
+                        # 이미지 처리 및 합성 로직 시작
                         img_a = Image.open(base_img)
                         img_b = Image.open(style_img)
+                        
+                        # [속도 개선 팁] 너무 큰 이미지는 속도를 늦추므로 리사이징
+                        img_a.thumbnail((1024, 1024))
+                        img_b.thumbnail((1024, 1024))
                         
                         # 헤나세르님이 제안하신 프롬프트를 시스템 명령어로 구성
                         # 첫 번째 인자가 Image A, 두 번째 인자가 Image B임을 명시합니다.
