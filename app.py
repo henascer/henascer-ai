@@ -4,7 +4,18 @@ from google.oauth2.service_account import Credentials
 import google.generativeai as genai
 from PIL import Image
 import pandas as pd
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
+# 모델 선언 부분
+model = genai.GenerativeModel(
+    'gemini-2.5-flash-image',
+    safety_settings={
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+)
 
 
 # 1. 페이지 설정
@@ -64,7 +75,8 @@ if access_key:
 
             # 2. 내 정면 사진 (Base) 섹션
             st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)
-            base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'])
+            # label_visibility="collapsed"를 추가하면 내부의 "본인의 정면 사진" 글자가 사라집니다.
+            base_img = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'], label_visibility="collapsed")
             
             st.markdown("---")
 
@@ -76,7 +88,7 @@ if access_key:
             st.image("example_front.jpg", width=250, caption="[합성이 잘 되는 정면 예시]")
             
             # 헤어 사진 업로드 창
-            style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'])
+            style_img = st.file_uploader("원하는 헤어 스타일 사진", type=['jpg', 'png', 'jpeg'], label_visibility="collapsed")
 
             st.markdown("---")
 
