@@ -2,7 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import google.generativeai as genai
-from PIL import Image
+from PIL import Image, ImageOps
 import pandas as pd
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import io
@@ -141,18 +141,55 @@ if access_key:
                                         found_image = True
                             
                             if found_image:
-                                # 합성이 성공했을 때만 횟수 차감 및 축하 효과
+                                # --- [1. 워터마크 합성 로직 시작] ---
+                                try:
+                                    # AI가 만든 원본 이미지 로드 (RGBA 모드로 변환)
+                                    image_bytes = part.inline_data.data
+                                    base_image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+                                    
+                                    # 로고 이미지 로드
+                                    logo = Image.open("logo.png").convert("RGBA")
+
+                                    # 1-1. 로고 크기 조절 (원본 이미지 너비의 20% 크기로 설정)
+                                    target_width = int(base_image.width * 0.2)
+                                    aspect_ratio = logo.height / logo.width
+                                    target_height = int(target_width * aspect_ratio)
+                                    logo_resized = logo.resize((target_width, target_height), Image.LANCZOS)
+
+                                    # 1-2. 로고 위치 계산 (우측 하단, 여백 20px)
+                                    padding = 20
+                                    position = (base_image.width - logo_resized.width - padding, base_image.height - logo_resized.height - padding)
+
+                                    # 1-3. 합성 (투명 배경 레이어 활용)
+                                    # 투명한 새 도화지를 만들고 그 위에 로고를 붙인 뒤, 원본과 합칩니다.
+                                    watermark_layer = Image.new('RGBA', base_image.size, (0,0,0,0))
+                                    watermark_layer.paste(logo_resized, position, mask=logo_resized)
+                                    final_result = Image.alpha_composite(base_image, watermark_layer)
+                                    
+                                    # 출력용 최종 이미지 설정
+                                    display_image = final_result
+
+                                except FileNotFoundError:
+                                    # 만약 logo.png 파일이 없으면 그냥 원본 이미지를 출력 (에러 방지)
+                                    st.warning("⚠️ 로고 파일(logo.png)을 찾을 수 없어 워터마크 없이 출력합니다.")
+                                    display_image = base_image
+                                
+                                # --- [2. 최종 결과 화면 출력] ---
+                                st.image(display_image, caption="✨헤나세르 AI 스타일링 결과", use_column_width=True)
+
+                                st.success("✅ 합성이 완료되었습니다!")
+                                
+                                # 강조된 캡처 안내 문구 (크고 잘 보이게)
+                                st.markdown("""
+                                    ### 📸 **지금 화면을 캡처해서 저장하세요!**
+                                    <div style='background-color:#f0f2f6; padding:15px; border-radius:10px;'>
+                                    미용실 방문 시 디자이너에게 이 사진을 보여주시면 상담이 훨씬 수월해집니다.😉
+                                    </div>
+                                    <br>
+                                    """, unsafe_allow_html=True)
+
+                                # 횟수 차감 및 축하 풍선
                                 worksheet.update_cell(idx + 2, 3, remaining - 1)
-                                st.success(f"스타일링 완료! 잔여 횟수: {remaining - 1}회")
-                                # 이미지 데이터를 바이너리로 변환하여 다운로드 버튼 생성
-                                buf = io.BytesIO()
-                                # part.inline_data.data는 바이너리 데이터이므로 그대로 활용 가능합니다.
-                                st.download_button(
-                                    label="💾 결과 이미지 저장하기",
-                                    data=part.inline_data.data,
-                                    file_name="henascer_style_result.png",
-                                    mime="image/png"
-                                )
                             else:
                                 st.error("AI가 이미지를 생성하지 못했습니다. 프롬프트나 이미지 정책을 확인해주세요.")
                                 if hasattr(response, 'text'): st.write(response.text)
