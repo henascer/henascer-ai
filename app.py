@@ -8,7 +8,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # 모델 선언 부분
 model = genai.GenerativeModel(
-    'gemini-2.5-pro-image',
+    'gemini-3-pro-image-preview',
     safety_settings={
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -48,7 +48,7 @@ except Exception as e:
 
 # 제미나이 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-2.5-pro-image')
+model = genai.GenerativeModel('gemini-3-pro-image-preivew')
 
 # 3. 메인 로직
 with st.sidebar:
@@ -103,24 +103,27 @@ if access_key:
                         # 헤나세르님이 제안하신 프롬프트를 시스템 명령어로 구성
                         # 첫 번째 인자가 Image A, 두 번째 인자가 Image B임을 명시합니다.
                         prompt = f"""
-                        You are given two images in sequence. 
-                        The FIRST image is Image A (BASE_IMAGE), and the SECOND image is Image B (STYLE_IMAGE).
+                        [Role]: You are a Master AI Stylist specializing in photo-realistic Virtual Try-on.
 
-                        [Image A (BASE_IMAGE)]: This is the customer's original photo. 
-                        - Do not change the person's face, identity, skin tone, facial features, or eyebrows.
+                        [Input]:
+                        - Image 1 (The FIRST image): BASE_IMAGE (The customer)
+                        - Image 2 (The SECOND image): STYLE_IMAGE (The reference look)
 
-                        [Image B (STYLE_IMAGE)]: This image is provided ONLY as a {mode} reference.
+                        [PRIME DIRECTIVE - CRITICAL]:
+                        1. TARGET RECOGNITION: Focus ONLY on the human subject's head and body. Strictly ignore all mobile UI elements (status bars, notches, buttons, white/black bars) in both images.
+                        2. IDENTITY ANCHOR: Use Image 1 as the absolute anchor. Do NOT rotate, tilt, or distort the face. The eye-line, nose position, and head angle must be 100% identical to Image 1.
+                        3. STYLE EXTRACTION: Extract only the {mode} (texture, color, silhouette) from Image 2.
 
                         [Task]:
-                        - Replace ONLY the {mode} of the person in Image A.
-                        - Use the {mode} from Image B as a reference for the new look.
-                        - Keep the face, eyebrows, eyes, nose, mouth, and facial proportions of Image A exactly the same.
-                        - Do not modify clothing, body, background, or lighting.
+                        - "Surgically" replace ONLY the {mode} of the person in Image 1 with the style from Image 2.
+                        - Head Pose Alignment: Ensure the new {mode} is naturally fitted onto the original head position of Image 1.
+                        - Seamless Blending: The hairline and the area where the skin meets the {mode} must be perfectly blended with realistic shadows.
+                        - Preservation: Keep the original facial features (eyebrows, eyes, skin texture), background, and clothing of Image 1 untouched.
 
                         [Important Rules]:
-                        - The final output must look like the EXACT SAME person from Image A.
-                        - Only the {mode} should be changed naturally.
-                        - Output ONLY the resulting image file.
+                        - The result must be a SINGLE integrated photo, NOT a side-by-side comparison.
+                        - The person's identity and facial proportions must remain 100% recognizable as the person in Image 1.
+                        - No text, no descriptions, no watermarks. Output ONLY the resulting image.
                         """
                         
                         try:
@@ -137,7 +140,6 @@ if access_key:
                             if found_image:
                                 # 합성이 성공했을 때만 횟수 차감 및 축하 효과
                                 worksheet.update_cell(idx + 2, 3, remaining - 1)
-                                st.balloons()
                                 st.success(f"스타일링 완료! 잔여 횟수: {remaining - 1}회")
                             else:
                                 st.error("AI가 이미지를 생성하지 못했습니다. 프롬프트나 이미지 정책을 확인해주세요.")
