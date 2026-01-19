@@ -91,7 +91,6 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
-st.title("✂️ 헤나세르 가상 스타일링")
 
 # 깔끔하게 메뉴와 푸터만 숨기기 (헤더 유지하여 키 입력창 보호)
 st.markdown("""<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>""", unsafe_allow_html=True)
@@ -117,7 +116,7 @@ model = genai.GenerativeModel('nano-banana-pro-preview')
 
 # --- [3. 메인 로직 시작] ---
 # 액세스 키를 사이드바가 아닌 화면 최상단에 배치
-st.markdown("### 🔑 멤버십 인증")
+st.markdown("### 🔑 가상 스타일링 멤버십 인증")
 access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)", type="password")
 
 if access_key:
@@ -139,13 +138,13 @@ if access_key:
             st.markdown("---")
 
             # 2. 내 정면 사진 (Base) 섹션
-            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진 (Base)</span>", unsafe_allow_html=True)
+            st.markdown("### 👤 <span style='font-size: 24px;'>내 정면 사진</span>", unsafe_allow_html=True)
             base_img_file = st.file_uploader("본인의 정면 사진", type=['jpg', 'png', 'jpeg'], label_visibility="collapsed")
             
             st.markdown("---")
 
             # 3. 합성할 헤어 사진 (Style) 섹션
-            st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>합성할 헤어 사진 (Style)</span>", unsafe_allow_html=True)
+            st.markdown("### 💇‍♂️ <span style='font-size: 24px;'>합성할 헤어 사진</span>", unsafe_allow_html=True)
             st.info("💡 아래와 같은 '정면' 예시를 준비해주세요. (측면 사진은 불가해요)")
             st.image("example_front.jpg", width=250, caption="[합성이 잘 되는 정면 예시]")
             
@@ -181,29 +180,25 @@ if access_key:
 
             # 5. 결과물 섹션
             if st.session_state.styling_done and st.session_state.final_image:
-                st.markdown("---")
                 # (1) 합성 사진
                 st.image(st.session_state.final_image, use_column_width=True)
 
                 # (2) 스타일 방향성 주의 문구
-                st.markdown("""
-                <div style='text-align: center; color: #808080; font-size: 13px; margin-top: 10px;'>
-                    이 결과는 스타일 방향성을 보기 위한 AI 시뮬레이션입니다.<br>
-                    실제와 100% 일치하지 않을 수 있습니다.
+                st.markdown(f"""
+                <div style='text-align: center; background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 15px;'>
+                    <p style='color: #555555; font-size: 14px; line-height: 1.6;'>
+                        본 결과는 스타일 방향성을 보기 위한 <b>AI 시뮬레이션</b>입니다.<br>
+                        각도나 조명에 따라 실제와 차이가 발생할 수 있습니다.
+                    </p>
+                    <p style='color: #333333; font-size: 15px; font-weight: bold; margin-top: 10px;'>
+                        🧐 결과가 마음에 들지 않으신가요?<br>
+                        <span style='color: #007bff;'>재합성</span>을 시도하거나, <span style='color: #007bff;'>다른 사진</span>으로 다시 테스트 해보세요!
+                    </p>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # (3) 좋아요 버튼
-                st.write("")
-                if st.button("👍 이 결과가 마음에 드시나요? (서비스 반영)"):
-                    try:
-                        current_likes_val = worksheet.cell(idx + 2, 4).value
-                        current_likes = int(current_likes_val) if current_likes_val and str(current_likes_val).isdigit() else 0
-                        worksheet.update_cell(idx + 2, 4, current_likes + 1)
-                        st.toast("피드백 감사합니다! 😊")
-                    except: pass
-
-                # (4) 재합성 버튼 (확인창 없이 즉시 실행, 1회만 가능)
+                    
+                # (3) 재합성 버튼 (확인창 없이 즉시 실행, 1회만 가능)
                 if st.session_state.synthesis_count == 1:
                     st.write("")
                     if st.button("🔄 재합성 시도하기 (무료 1회)"):
@@ -213,6 +208,16 @@ if access_key:
                             if run_synthesis(mode, img_a, img_b, idx, remaining):
                                 st.session_state.synthesis_count = 2
                                 st.rerun()
+
+                # (4) 좋아요 버튼
+                st.write("")
+                if st.button("👍 이 결과가 마음에 드시나요? (서비스 반영)"):
+                    try:
+                        current_likes_val = worksheet.cell(idx + 2, 4).value
+                        current_likes = int(current_likes_val) if current_likes_val and str(current_likes_val).isdigit() else 0
+                        worksheet.update_cell(idx + 2, 4, current_likes + 1)
+                        st.toast("피드백 감사합니다! 😊")
+                    except: pass
 
         else:
             st.error("잔여 횟수가 없습니다. 충전이 필요합니다.")
