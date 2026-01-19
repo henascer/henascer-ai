@@ -7,7 +7,10 @@ import pandas as pd
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import io
 
-# 모델 선언 부분
+
+# 제미나이 설정 및 모델 선언
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
 model = genai.GenerativeModel(
     'nano-banana-pro-preview',
     safety_settings={
@@ -33,30 +36,48 @@ if 'last_files' not in st.session_state:
 # --- [함수: 합성 로직] ---
 def run_synthesis(mode, img_a, img_b, idx, remaining):
     try:
-        # 프롬프트 생성
+        # 1. 생성 설정(Generation Config) 정의
+        # 온도를 낮추면 결과가 일관되고 얼굴 왜곡이 줄어듭니다.
+        generation_config = {
+            "temperature": 0.4,  # 0.0 ~ 2.0 사이 (낮을수록 보수적/안정적)
+            "top_p": 0.95,       # 상위 확률 분포 조절
+            "top_k": 32,         # 후보군 제한
+            "max_output_tokens": 1024,
+        }
+
+        # 2. 프롬프트 생성
         prompt = f"""
-        URGENT: Strict head pose alignment. The nose and eyes in the output MUST be in the exact same pixel coordinates as Image A.
         [Role]: You are a Master AI Stylist specializing in photo-realistic Virtual Try-on.
+
         [Input]:
         - Image 1 (The FIRST image): BASE_IMAGE (The customer)
         - Image 2 (The SECOND image): STYLE_IMAGE (The reference look)
+
         [PRIME DIRECTIVE - CRITICAL]:
         1. TARGET RECOGNITION: Focus ONLY on the human subject's head and body. Strictly ignore all mobile UI elements (status bars, notches, buttons, white/black bars) in both images.
-        2. IDENTITY ANCHOR: Use Image 1 as the absolute anchor. Do NOT rotate, tilt, or distort the face. The eye-line, nose position, and head angle must be 100% identical to Image 1.
-        3. STYLE EXTRACTION: Extract only the {mode} (texture, color, silhouette) from Image 2.
+        2. DO NOT CHANGE the person's head angle, facial expression, or eye direction from Image 1. 
+        3. Image 1 is the MASTER for the face. Keep the identity, skin tone, and features 100% identical.
+        4. Extract ONLY the {mode} style from Image 2 and apply it onto the person in Image 1.
+        5. The output must have the EXACT SAME facial alignment and camera angle as Image 1.
+        
         [Task]:
         - "Surgically" replace ONLY the {mode} of the person in Image 1 with the style from Image 2.
         - Head Pose Alignment: Ensure the new {mode} is naturally fitted onto the original head position of Image 1.
         - Seamless Blending: The hairline and the area where the skin meets the {mode} must be perfectly blended with realistic shadows.
         - Preservation: Keep the original facial features (eyebrows, eyes, skin texture), background, and clothing of Image 1 untouched.
+
         [Important Rules]:
         - The result must be a SINGLE integrated photo, NOT a side-by-side comparison.
         - The person's identity and facial proportions must remain 100% recognizable as the person in Image 1.
         - No text, no descriptions, no watermarks. Output ONLY the resulting image.
         """
         st.session_state.current_prompt = prompt
-        
-        response = model.generate_content([prompt, img_a, img_b])
+
+        # 3. 이미지 생성 요청 시 config 반영
+        response = model.generate_content(
+            [st.session_state.current_prompt, img_a, img_b],
+            generation_config=generation_config 
+        )
         
         image_data = None
         if response.candidates:
@@ -66,25 +87,37 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
                     break
         
         if image_data:
-            # 워터마크 합성 로직 (폰트 합성 제외)
+            # 원본 결과물 코드
             base_image = Image.open(io.BytesIO(image_data)).convert("RGBA")
-            logo = Image.open("logo.png").convert("RGBA")
-            target_width = int(base_image.width * 0.2)
-            aspect_ratio = logo.height / logo.width
 
-            logo_resized = logo.resize((target_width, int(target_width * (logo.height/logo.width))), Image.LANCZOS)
-            logo_resized.putalpha(128) # 0(투명) ~ 255(불투명) 중 중간값인 128 적용
+            # 로고 코드 및 설정
+            try : 
+                logo = Image.open("logo.png").convert("RGBA")
+                target_width = int(base_image.width * 0.15)
 
-            target_height = int(target_width * aspect_ratio)
-            padding = 20
-            position = (base_image.width - logo_resized.width - padding, base_image.height - logo_resized.height - padding)
-            watermark_layer = Image.new('RGBA', base_image.size, (0,0,0,0))
-            watermark_layer.paste(logo_resized, position, mask=logo_resized)
-                    
-            st.session_state.final_image = base_image # 결과물 저장
-            st.session_state.styling_done = True
-            return True
-        return False
+                logo_resized = logo.resize((target_width, int(target_width * (logo.height/logo.width))), Image.LANCZOS)
+                logo_resized.putalpha(150) # 투명도 (0~255, 150정도면 선명하면서도 자연스러움)
+
+                # 워터마크 레이어 생성
+                watermark_layer = Image.new('RGBA', base_image.size, (0,0,0,0))
+                padding = 30
+                position = (base_image.width - logo_resized.width - padding, 
+                            base_image.height - logo_resized.height - padding)
+
+                # 레이어에 로고 부착
+                watermark_layer.paste(logo_resized, position, mask=logo_resized)
+
+                # 원본과 워터마크 레이어 병합
+                final_combined_image = Image.alpha_composite(base_image, watermark_layer)
+                st.session_state.final_image = final_combined_image.convert("RGB") # 세션 저장
+            
+            except FileNotFoundError:
+                st.warning("⚠️ logo.png 파일을 찾을 수 없어 원본 이미지만 표시합니다.")
+                st.session_state.final_image = base_image.convert("RGB")
+                
+        st.session_state.styling_done = True
+        return True
+    
     except Exception as e:
         st.error(f"합성 엔진 오류: {e}")
         return False
@@ -93,7 +126,7 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
 
 # 깔끔하게 메뉴와 푸터만 숨기기 (헤더 유지하여 키 입력창 보호)
-st.markdown("""<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>""", unsafe_allow_html=True)
+st.markdown("""<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>""", unsafe_allow_html=True)
 
 # 2. 인증 설정
 try:
@@ -109,10 +142,6 @@ try:
 except Exception as e:
     st.error(f"설정 오류: {e}")
     st.stop()
-
-# 제미나이 설정
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('nano-banana-pro-preview')
 
 # --- [3. 메인 로직 시작] ---
 # 액세스 키를 사이드바가 아닌 화면 최상단에 배치
@@ -192,7 +221,8 @@ if access_key:
                     </p>
                     <p style='color: #333333; font-size: 15px; font-weight: bold; margin-top: 10px;'>
                         🧐 결과가 마음에 들지 않으신가요?<br>
-                        <span style='color: #007bff;'>재합성</span>을 시도하거나, <span style='color: #007bff;'>다른 사진</span>으로 다시 테스트 해보세요!
+                        <span style='color: #007bff;'>재합성</span>을 시도하거나,<br>
+                        <span style='color: #007bff;'>다른 사진</span>으로 다시 테스트 해보세요!
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
