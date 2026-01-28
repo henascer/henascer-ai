@@ -140,30 +140,35 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
 
-# --- [CSS 주입: 로고 및 툴바 제거 (강력한 최신 버전)] ---
-# Streamlit이 업데이트되더라도 최대한 방어할 수 있는 선택자들을 사용했습니다.
+# --- [CSS 주입: 로고, 프로필, 툴바 완벽 제거] ---
 hide_streamlit_style = """
             <style>
-            /* 1. 햄버거 메뉴 및 헤더 숨기기 */
+            /* 1. 기본 메뉴 및 푸터 숨기기 */
             #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
             header {visibility: hidden;}
             
-            /* 2. 풋터 숨기기 */
-            footer {visibility: hidden;}
-            
-            /* 3. 우측 상단 배포 버튼 및 툴바 숨기기 */
+            /* 2. 우측 상단 배포 버튼 및 툴바 제거 */
             .stAppDeployButton {display: none;}
-            [data-testid="stToolbar"] {visibility: hidden; display: none;}
-            
-            /* 4. 우측 하단 'Made with Streamlit' 로고 숨기기 (강력한 선택자) */
-            /* 특정 링크를 포함하는 상위 div를 찾아 숨깁니다. */
-            div:has(> a[href*="streamlit.io/cloud"]) {
-                visibility: hidden;
-                display: none;
+            [data-testid="stToolbar"] {display: none;}
+
+            /* 3. 사용자가 찾은 특정 클래스 기반 로고/배지 삭제 */
+            /* 클래스 이름의 일부만 포함되어도 삭제하도록 설정하여 업데이트에 대비합니다 */
+            div[class*="_container_gzau3_1"], 
+            div[class*="_viewerBadge_"],
+            div[class*="_profileImage_"],
+            div[class*="_lightThemeShadow_"] {
+                display: none !important;
             }
-            /* 구버전 호환용 추가 선택자 */
-            .viewerBadge_container__1QSob {display: none !important;}
-            div[data-testid="stStatusWidget"] {visibility: hidden;}
+
+            /* 4. 혹시 모를 잔상 제거 (상태 위젯 등) */
+            div[data-testid="stStatusWidget"] {display: none !important;}
+            
+            /* 5. 모바일에서 화면을 가리는 여백 조정 */
+            .block-container {
+                padding-top: 2rem;
+                padding-bottom: 2rem;
+            }
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
