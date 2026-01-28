@@ -2,7 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import google.generativeai as genai
-from PIL import Image, ImageOps, ImageDraw, ImageFont
+from PIL import Image, ImageOps, ImageDraw, ImageFont, ImageEnhance # ImageEnhance 추가
 import pandas as pd
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import io
@@ -10,7 +10,6 @@ import io
 
 # 제미나이 설정 및 모델 선언
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-
 model = genai.GenerativeModel(
     'nano-banana-pro-preview',
     safety_settings={
@@ -21,25 +20,6 @@ model = genai.GenerativeModel(
     }
 )
 
-# --- [CSS 주입: 로고 및 툴바 제거] ---
-hide_streamlit_style = """
-            <style>
-            /* 전체 메뉴 버튼 숨기기 */
-            #MainMenu {visibility: hidden;}
-            
-            /* 하단 푸터 숨기기 */
-            footer {visibility: hidden;}
-            
-            /* 우측 하단 "Made with Streamlit" 및 유저 링크 배지 제거 */
-            .viewerBadge_container__1QSob, .viewerBadge_link__1QSob {display: none !important;}
-            div[data-testid="stStatusWidget"] {visibility: hidden;}
-            
-            /* 우측 상단 툴바(Deploy 버튼 등) 제거 */
-            .stAppDeployButton {display: none !important;}
-            [data-testid="stToolbar"] {visibility: hidden !important;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 st.set_page_config(
     page_title="헤나세르 AI 스타일러",
@@ -128,16 +108,18 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
                 # 로고 리사이징 (깔끔한 품질을 위해 LANCZOS 필터 사용)
                 logo_resized = logo.resize((target_width, target_height), Image.LANCZOS)
                 
-                # [핵심] 투명도 설정 (0:투명 ~ 255:불투명)
-                # 150 정도로 설정하면 뒤 배경이 은은하게 비치는 자연스러운 워터마크가 됩니다.
-                logo_resized.putalpha(150) 
+                # [핵심 수정] 투명도 조절 방식 변경 (스탬프 현상 해결)
+                # putalpha 대신 알파 채널만 분리해서 강조(Enhance)하는 방식 사용
+                alpha = logo_resized.split()[3] # RGBA 중 A(알파) 채널만 추출
+                # 0.6은 투명도 60%를 의미합니다. (0.0 ~ 1.0 사이 조절 가능)
+                alpha = ImageEnhance.Brightness(alpha).enhance(0.6) 
+                logo_resized.putalpha(alpha) # 조절된 알파 채널을 다시 적용
 
                 # 3. 로고 위치 계산 (우측 하단, 여백 30px)
                 padding = 30
                 position = (base_image.width - logo_resized.width - padding, 
                             base_image.height - logo_resized.height - padding)
                 
-                # [문제 해결의 핵심] 원본 이미지에 직접 로고를 붙입니다.
                 # mask=logo_resized 파라미터가 로고의 투명한 부분을 완벽하게 처리해줍니다.
                 base_image.paste(logo_resized, position, mask=logo_resized)
                 
@@ -158,6 +140,34 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
 
+# --- [CSS 주입: 로고 및 툴바 제거 (강력한 최신 버전)] ---
+# Streamlit이 업데이트되더라도 최대한 방어할 수 있는 선택자들을 사용했습니다.
+hide_streamlit_style = """
+            <style>
+            /* 1. 햄버거 메뉴 및 헤더 숨기기 */
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            
+            /* 2. 풋터 숨기기 */
+            footer {visibility: hidden;}
+            
+            /* 3. 우측 상단 배포 버튼 및 툴바 숨기기 */
+            .stAppDeployButton {display: none;}
+            [data-testid="stToolbar"] {visibility: hidden; display: none;}
+            
+            /* 4. 우측 하단 'Made with Streamlit' 로고 숨기기 (강력한 선택자) */
+            /* 특정 링크를 포함하는 상위 div를 찾아 숨깁니다. */
+            div:has(> a[href*="streamlit.io/cloud"]) {
+                visibility: hidden;
+                display: none;
+            }
+            /* 구버전 호환용 추가 선택자 */
+            .viewerBadge_container__1QSob {display: none !important;}
+            div[data-testid="stStatusWidget"] {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # 2. 인증 설정
 try:
     # Google Sheets 인증
@@ -176,8 +186,7 @@ except Exception as e:
 # --- [3. 메인 로직 시작] ---
 # 액세스 키를 사이드바가 아닌 화면 최상단에 배치
 st.markdown("### 🔑 멤버십 인증")
-access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)<br>\
-                            코디는 추후 오픈 예정입니다", type="password")
+access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분) 코디는 추후 오픈 예정입니다.", type="password")
 
 if access_key:
     # 실시간 시트 데이터 확인
