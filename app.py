@@ -140,34 +140,33 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
 
-# --- [CSS 주입: 로고, 프로필, 툴바 완벽 제거] ---
 hide_streamlit_style = """
             <style>
-            /* 1. 기본 메뉴 및 푸터 숨기기 */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            
-            /* 2. 우측 상단 배포 버튼 및 툴바 제거 */
-            .stAppDeployButton {display: none;}
-            [data-testid="stToolbar"] {display: none;}
+            /* 1. 상단/하단 메뉴 전체 박멸 */
+            header, footer {visibility: hidden !important; height: 0 !important; display: none !important;}
+            #MainMenu {visibility: hidden !important;}
+            .stAppDeployButton {display: none !important;}
 
-            /* 3. 사용자가 찾은 특정 클래스 기반 로고/배지 삭제 */
-            /* 클래스 이름의 일부만 포함되어도 삭제하도록 설정하여 업데이트에 대비합니다 */
-            div[class*="_container_gzau3_1"], 
-            div[class*="_viewerBadge_"],
-            div[class*="_profileImage_"],
-            div[class*="_lightThemeShadow_"] {
+            /* 2. 우측 하단 배지 및 프로필 이미지 (가장 강력한 저격) */
+            /* 특정 클래스로 시작하는 모든 요소를 강제로 숨깁니다 */
+            [class^="_container_"], [class^="_viewerBadge_"], [class^="_profileImage_"] {
+                display: none !important;
+                visibility: hidden !important;
+                width: 0 !important;
+                height: 0 !important;
+            }
+
+            /* 3. 데이터 테스크 아이디(보이지 않는 이름표) 저격 */
+            [data-testid="stStatusWidget"], [data-testid="stToolbar"] {
                 display: none !important;
             }
 
-            /* 4. 혹시 모를 잔상 제거 (상태 위젯 등) */
-            div[data-testid="stStatusWidget"] {display: none !important;}
-            
-            /* 5. 모바일에서 화면을 가리는 여백 조정 */
-            .block-container {
-                padding-top: 2rem;
-                padding-bottom: 2rem;
+            /* 4. 화면을 감싸는 전체 레이아웃 여백 최적화 (로고가 있던 빈자리까지 제거) */
+            .stApp {
+                bottom: 0 !important;
+            }
+            #root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.block-container {
+                padding-bottom: 0rem !important;
             }
             </style>
             """
