@@ -21,6 +21,32 @@ model = genai.GenerativeModel(
     }
 )
 
+# --- [CSS 주입: 로고 및 툴바 제거] ---
+hide_streamlit_style = """
+            <style>
+            /* 전체 메뉴 버튼 숨기기 */
+            #MainMenu {visibility: hidden;}
+            
+            /* 하단 푸터 숨기기 */
+            footer {visibility: hidden;}
+            
+            /* 우측 하단 "Made with Streamlit" 및 유저 링크 배지 제거 */
+            .viewerBadge_container__1QSob, .viewerBadge_link__1QSob {display: none !important;}
+            div[data-testid="stStatusWidget"] {visibility: hidden;}
+            
+            /* 우측 상단 툴바(Deploy 버튼 등) 제거 */
+            .stAppDeployButton {display: none !important;}
+            [data-testid="stToolbar"] {visibility: hidden !important;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+st.set_page_config(
+    page_title="헤나세르 AI 스타일러",
+    page_icon="logo.png", # 여기에 로고 파일을 지정하면 탭 로고가 바뀝니다.
+    layout="centered"
+)
+
 # --- [0. 세션 상태 초기화] ---
 if 'styling_done' not in st.session_state:
     st.session_state.styling_done = False
@@ -87,36 +113,43 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
                     break
         
         if image_data:
-            # 원본 결과물 코드
+            # 1. 원본 결과물 로드 (RGBA 모드)
             base_image = Image.open(io.BytesIO(image_data)).convert("RGBA")
-
-            # 로고 코드 및 설정
-            try : 
+            
+            try:
+                # 2. 로고 로드 및 설정
                 logo = Image.open("logo.png").convert("RGBA")
+                
+                # 로고 크기 계산 (원본 너비의 15%)
                 target_width = int(base_image.width * 0.15)
+                aspect_ratio = logo.height / logo.width
+                target_height = int(target_width * aspect_ratio)
+                
+                # 로고 리사이징 (깔끔한 품질을 위해 LANCZOS 필터 사용)
+                logo_resized = logo.resize((target_width, target_height), Image.LANCZOS)
+                
+                # [핵심] 투명도 설정 (0:투명 ~ 255:불투명)
+                # 150 정도로 설정하면 뒤 배경이 은은하게 비치는 자연스러운 워터마크가 됩니다.
+                logo_resized.putalpha(150) 
 
-                logo_resized = logo.resize((target_width, int(target_width * (logo.height/logo.width))), Image.LANCZOS)
-                logo_resized.putalpha(150) # 투명도 (0~255, 150정도면 선명하면서도 자연스러움)
-
-                # 워터마크 레이어 생성
-                watermark_layer = Image.new('RGBA', base_image.size, (0,0,0,0))
+                # 3. 로고 위치 계산 (우측 하단, 여백 30px)
                 padding = 30
                 position = (base_image.width - logo_resized.width - padding, 
                             base_image.height - logo_resized.height - padding)
-
-                # 레이어에 로고 부착
-                watermark_layer.paste(logo_resized, position, mask=logo_resized)
-
-                # 원본과 워터마크 레이어 병합
-                final_combined_image = Image.alpha_composite(base_image, watermark_layer)
-                st.session_state.final_image = final_combined_image.convert("RGB") # 세션 저장
-            
+                
+                # [문제 해결의 핵심] 원본 이미지에 직접 로고를 붙입니다.
+                # mask=logo_resized 파라미터가 로고의 투명한 부분을 완벽하게 처리해줍니다.
+                base_image.paste(logo_resized, position, mask=logo_resized)
+                
+                # 최종 결과물 저장 (다시 RGB로 변환)
+                st.session_state.final_image = base_image.convert("RGB")
+                
             except FileNotFoundError:
                 st.warning("⚠️ logo.png 파일을 찾을 수 없어 원본 이미지만 표시합니다.")
                 st.session_state.final_image = base_image.convert("RGB")
-                
-        st.session_state.styling_done = True
-        return True
+
+            st.session_state.styling_done = True
+            return True
     
     except Exception as e:
         st.error(f"합성 엔진 오류: {e}")
@@ -124,9 +157,6 @@ def run_synthesis(mode, img_a, img_b, idx, remaining):
 
 # 1. 페이지 설정
 st.set_page_config(page_title="헤나세르 가상 스타일링", layout="centered")
-
-# 깔끔하게 메뉴와 푸터만 숨기기 (헤더 유지하여 키 입력창 보호)
-st.markdown("""<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>""", unsafe_allow_html=True)
 
 # 2. 인증 설정
 try:
@@ -145,8 +175,9 @@ except Exception as e:
 
 # --- [3. 메인 로직 시작] ---
 # 액세스 키를 사이드바가 아닌 화면 최상단에 배치
-st.markdown("### 🔑 가상 스타일링 멤버십 인증")
-access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)", type="password")
+st.markdown("### 🔑 멤버십 인증")
+access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)<br>\
+                            코디는 추후 오픈 예정입니다", type="password")
 
 if access_key:
     # 실시간 시트 데이터 확인
