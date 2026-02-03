@@ -192,6 +192,19 @@ except Exception as e:
 st.markdown("### 🔑 멤버십 인증")
 access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분) 코디는 추후 오픈 예정입니다.", type="password")
 
+# 인증키 입력 전 공지사항 (인증 성공 시 사라짐)
+if not access_key:
+    st.markdown("""
+    <div style='background-color: #f1f3f5; padding: 20px; border-radius: 10px; border-left: 5px solid #adb5bd; margin-top: 10px;'>
+        <p style='margin-bottom: 10px; font-weight: bold;'>📢 이용 공지사항</p>
+        <ul style='font-size: 14px; color: #495057; padding-left: 20px;'>
+            <li><b>코디 합성은 준비 중</b>이며, 추후 유료 서비스로 출시 예정입니다. (크레딧 제도 도입 예정)</li>
+            <li>AI는 특성상 가끔 어색한 결과를 출력할 수 있어 <b>재합성 1회를 무료로 제공</b>합니다.</li>
+            <li>재합성 시 기존 사진은 삭제되니, 결과가 마음에 드신다면 <b>반드시 먼저 캡쳐</b>해 주세요.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
 if access_key:
     # 실시간 시트 데이터 확인
     data = worksheet.get_all_records()
@@ -250,6 +263,8 @@ if access_key:
                                 st.error("이미지를 생성하지 못했습니다. 다시 시도해 주세요. (횟수 차감 X)")
                         except Exception as e:
                             st.error(f"합성 엔진 오류: {e}")
+                # 모바일 하단 여백 추가 (버튼이 바닥에 붙지 않게 함)
+                st.markdown("<div style='margin-bottom: 100px;'></div>", unsafe_allow_html=True)
 
             # 5. 결과물 섹션
             if st.session_state.styling_done and st.session_state.final_image:
