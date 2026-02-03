@@ -190,20 +190,8 @@ except Exception as e:
 # --- [3. 메인 로직 시작] ---
 # 액세스 키를 사이드바가 아닌 화면 최상단에 배치
 st.markdown("### 🔑 멤버십 인증")
-access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분) 코디는 추후 오픈 예정입니다.", type="password")
-
-# 인증키 입력 전 공지사항 (인증 성공 시 사라짐)
-if not access_key:
-    st.markdown("""
-    <div style='background-color: #f1f3f5; padding: 20px; border-radius: 10px; border-left: 5px solid #adb5bd; margin-top: 10px;'>
-        <p style='margin-bottom: 10px; font-weight: bold;'>📢 이용 공지사항</p>
-        <ul style='font-size: 14px; color: #495057; padding-left: 20px;'>
-            <li><b>코디 합성은 준비 중</b>이며, 추후 유료 서비스로 출시 예정입니다. (크레딧 제도 도입 예정)</li>
-            <li>AI는 특성상 가끔 어색한 결과를 출력할 수 있어 <b>재합성 1회를 무료로 제공</b>합니다.</li>
-            <li>재합성 시 기존 사진은 삭제되니, 결과가 마음에 드신다면 <b>반드시 먼저 캡쳐</b>해 주세요.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+access_key = st.text_input("액세스 키를 입력하세요 (대소문자 구분)", type="password")
+  
 
 if access_key:
     # 실시간 시트 데이터 확인
@@ -314,3 +302,13 @@ if access_key:
         st.error("잘못된 키입니다.")
 else:
     st.info("계속하려면 인증 키를 입력해주세요.")
+    st.markdown("""
+    <div style='background-color: #f1f3f5; padding: 20px; border-radius: 10px; border-left: 5px solid #adb5bd; margin-top: 10px;'>
+        <p style='margin-bottom: 10px; font-weight: bold;'>📢 이용 공지사항</p>
+        <ul style='font-size: 14px; color: #495057; padding-left: 20px;'>
+            <li><b>코디 합성은 준비 중</b>이며, 추후 유료 서비스로 출시 예정입니다. (크레딧 제도 도입 예정)</li>
+            <li>AI는 특성상 가끔 어색한 결과를 출력할 수 있어 <b>재합성 1회를 무료로 제공</b>합니다.</li>
+            <li>재합성 시 기존 사진은 삭제되니, 결과가 마음에 드신다면 <b>반드시 먼저 캡쳐</b>해 주세요.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
