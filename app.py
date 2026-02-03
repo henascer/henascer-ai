@@ -295,6 +295,7 @@ if access_key:
                         worksheet.update_cell(idx + 2, 4, current_likes + 1)
                         st.toast("피드백 감사합니다! 😊")
                     except: pass
+                st.markdown("<div style='margin-bottom: 100px;'></div>", unsafe_allow_html=True)
 
         else:
             st.error("잔여 횟수가 없습니다. 충전이 필요합니다.")
